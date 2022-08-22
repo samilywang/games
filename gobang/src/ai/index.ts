@@ -8,7 +8,8 @@ enum ChessBoardPositionState {
 enum LineDirection {
   row = 'row',
   column = 'column',
-  slash = 'slash',
+  slash45 = 'slash45',
+  slash135 = 'slash135',
 }
 
 const initChessBoard = (pieces: TPiecePosition[]) => {
@@ -30,85 +31,156 @@ const initChessBoard = (pieces: TPiecePosition[]) => {
   return chessBoard;
 };
 
+// 横线
+const findInRow = (
+  chessBoard: ChessBoardPositionState[][],
+  targetPosition: TPiecePosition,
+  targetType: ChessBoardPositionState
+) => {
+  const { x, y } = targetPosition;
+  let count = 1;
+  let nearX = Math.max(x - 1, 0);
+
+  // 向左搜寻
+  while (nearX >= 0 && chessBoard[nearX][y] === targetType) {
+    count++;
+    nearX--;
+  }
+  const leftDead = nearX >= 0 && chessBoard[nearX][y] === ChessBoardPositionState.none ? 0 : 1;
+
+  // 向右搜寻
+  nearX = Math.min(x + 1, 14);
+  while (nearX <= 14 && chessBoard[nearX][y] === targetType) {
+    count++;
+    nearX++;
+  }
+  const rightDead = nearX <= 14 && chessBoard[nearX][y] === ChessBoardPositionState.none ? 0 : 1;
+
+  return {
+    count,
+    deadSide: leftDead + rightDead,
+  };
+};
+
+// 竖线
+const findInColumn = (
+  chessBoard: ChessBoardPositionState[][],
+  targetPosition: TPiecePosition,
+  targetType: ChessBoardPositionState
+) => {
+  const { x, y } = targetPosition;
+  let count = 1;
+  let nearY = Math.max(y - 1, 0);
+
+  // 向上搜寻
+  while (nearY >= 0 && chessBoard[x][nearY] === targetType) {
+    count++;
+    nearY--;
+  }
+  const leftDead = nearY >= 0 && chessBoard[x][nearY] === ChessBoardPositionState.none ? 0 : 1;
+
+  // 向下搜寻
+  nearY = Math.min(y + 1, 14);
+  while (nearY <= 14 && chessBoard[x][nearY] === targetType) {
+    count++;
+    nearY++;
+  }
+  const rightDead = nearY <= 14 && chessBoard[x][nearY] === ChessBoardPositionState.none ? 0 : 1;
+
+  return {
+    count,
+    deadSide: leftDead + rightDead,
+  };
+};
+
+// 斜线1
+const findInSlash45 = (
+  chessBoard: ChessBoardPositionState[][],
+  targetPosition: TPiecePosition,
+  targetType: ChessBoardPositionState
+) => {
+  const { x, y } = targetPosition;
+  let count = 1;
+  let nearX = Math.min(x + 1, 14);
+  let nearY = Math.max(y - 1, 0);
+
+  // 向斜上搜寻
+  while (nearX <= 14 && nearY >= 0 && chessBoard[nearX][nearY] === targetType) {
+    count++;
+    nearX++;
+    nearY--;
+  }
+  const leftDead = nearX <= 14 && nearY >= 0 && chessBoard[nearX][nearY] === ChessBoardPositionState.none ? 0 : 1;
+
+  // 向斜下搜寻
+  nearX = Math.max(x - 1, 0);
+  nearY = Math.min(y + 1, 14);
+  while (nearX >= 0 && nearY <= 14 && chessBoard[nearX][nearY] === targetType) {
+    count++;
+    nearX--;
+    nearY++;
+  }
+  const rightDead = nearX >= 0 && nearY <= 14 && chessBoard[nearX][nearY] === ChessBoardPositionState.none ? 0 : 1;
+
+  return {
+    count,
+    deadSide: leftDead + rightDead,
+  };
+};
+
+// 斜线2
+const findInSlash135 = (
+  chessBoard: ChessBoardPositionState[][],
+  targetPosition: TPiecePosition,
+  targetType: ChessBoardPositionState
+) => {
+  const { x, y } = targetPosition;
+  let count = 1;
+  let nearX = Math.max(x - 1, 0);
+  let nearY = Math.max(y - 1, 0);
+
+  // 向斜上搜寻
+  while (nearX >= 0 && nearY >= 0 && chessBoard[nearX][nearY] === targetType) {
+    count++;
+    nearX--;
+    nearY--;
+  }
+  const leftDead = nearX >= 0 && nearY >= 0 && chessBoard[nearX][nearY] === ChessBoardPositionState.none ? 0 : 1;
+
+  // 向斜下搜寻
+  nearX = Math.min(x + 1, 14);
+  nearY = Math.min(y + 1, 14);
+  while (nearX <= 14 && nearY <= 14 && chessBoard[nearX][nearY] === targetType) {
+    count++;
+    nearX++;
+    nearY++;
+  }
+  const rightDead = nearX <= 14 && nearY <= 14 && chessBoard[nearX][nearY] === ChessBoardPositionState.none ? 0 : 1;
+
+  return {
+    count,
+    deadSide: leftDead + rightDead,
+  };
+};
+
+// 4个方向判断连珠数
 const findInLine = (
   chessBoard: ChessBoardPositionState[][],
   targetPosition: TPiecePosition,
   targetType: ChessBoardPositionState,
   direction: LineDirection
 ) => {
-  const { x, y } = targetPosition;
-  let count = 1;
-  let nearX: number;
-  let nearY: number;
-
-  // left/top
   switch (direction) {
     case LineDirection.row:
-      nearX = Math.max(x - 1, 0);
-      nearY = y;
-      break;
+      return findInRow(chessBoard, targetPosition, targetType);
     case LineDirection.column:
-      nearX = x;
-      nearY = Math.max(y - 1, 0);
-      break;
-    case LineDirection.slash:
-      nearX = Math.max(x - 1, 0);
-      nearY = Math.max(y - 1, 0);
-      break;
+      return findInColumn(chessBoard, targetPosition, targetType);
+    case LineDirection.slash45:
+      return findInSlash45(chessBoard, targetPosition, targetType);
+    case LineDirection.slash135:
+    default:
+      return findInSlash135(chessBoard, targetPosition, targetType);
   }
-  while (chessBoard[nearX][nearY] === targetType && nearX > 0 && nearY > 0) {
-    count++;
-    switch (direction) {
-      case 'row':
-        nearX--;
-        break;
-      case 'column':
-        nearY--;
-        break;
-      case 'slash':
-        nearX--;
-        nearY--;
-        break;
-    }
-  }
-  const leftDead = chessBoard[nearX][nearY] === ChessBoardPositionState.none ? 0 : 1;
-
-  // right/bottom
-  switch (direction) {
-    case 'row':
-      nearX = Math.min(x + 1, 14);
-      nearY = y;
-      break;
-    case 'column':
-      nearX = x;
-      nearY = Math.min(y + 1, 14);
-      break;
-    case 'slash':
-      nearX = Math.min(x + 1, 14);
-      nearY = Math.min(y + 1, 14);
-      break;
-  }
-  while (chessBoard[nearX][nearY] === targetType && nearX < 15 && nearY < 15) {
-    count++;
-    switch (direction) {
-      case 'row':
-        nearX++;
-        break;
-      case 'column':
-        nearY++;
-        break;
-      case 'slash':
-        nearX++;
-        nearY++;
-        break;
-    }
-  }
-  const rightDead = chessBoard[nearX][nearY] === ChessBoardPositionState.none ? 0 : 1;
-
-  return {
-    count,
-    deadSide: leftDead + rightDead,
-  };
 };
 
 /**
@@ -153,6 +225,9 @@ const getLineScore = ({ count, deadSide }: { count: number; deadSide: number }) 
   return 0;
 };
 
+/**
+ * 计算对应位置的分数
+ */
 const calPositionScore = (
   chessBoard: ChessBoardPositionState[][],
   targetPosition: TPiecePosition,
@@ -160,17 +235,10 @@ const calPositionScore = (
 ): number => {
   let score = 0;
 
-  const directions = [LineDirection.row, LineDirection.column, LineDirection.slash];
+  const directions = [LineDirection.row, LineDirection.column, LineDirection.slash45, LineDirection.slash135];
   for (let direction of directions) {
     const blackLineResult = findInLine(chessBoard, targetPosition, ChessBoardPositionState.black, direction);
     const whiteRowResult = findInLine(chessBoard, targetPosition, ChessBoardPositionState.white, direction);
-
-    if (blackLineResult.count > 1) {
-      console.log('black', targetPosition, blackLineResult, getLineScore(blackLineResult));
-    }
-    if (whiteRowResult.count > 1) {
-      console.log('white', targetPosition, whiteRowResult, getLineScore(whiteRowResult));
-    }
 
     score += getLineScore(blackLineResult);
     score += getLineScore(whiteRowResult);
@@ -190,7 +258,6 @@ export const getSuggestPosition = (pieces: TPiecePosition[]) => {
       if (chessBoard[x][y] === ChessBoardPositionState.none) {
         const score = calPositionScore(chessBoard, { x, y }, targetPieceType);
         if (score > maxScore) {
-          console.log(`score = ${score}, x = ${x}, y = ${y}`);
           maxScore = score;
           result = { x, y };
         }

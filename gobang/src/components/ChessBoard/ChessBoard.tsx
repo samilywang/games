@@ -70,7 +70,7 @@ function Lines() {
 
   return (
     <>
-      {LineNumbers()}
+      {/* {LineNumbers()} */}
       {verticalLines}
       {horizontalLines}
     </>
